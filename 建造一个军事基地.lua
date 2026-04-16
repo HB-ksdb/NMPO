@@ -105,6 +105,7 @@ local TabHandles = {
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
+-- 获取你的地皮
 local function GetPlayerPlot()
     local plots = workspace:FindFirstChild("Plots")
     if not plots then return nil end
@@ -122,29 +123,60 @@ if not plot then
     return
 end
 
-local collectTarget = plot:WaitForChild("baseplate"):WaitForChild("Structures"):WaitForChild("Solar Array")
-local remote = game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Resources"):WaitForChild("PlotResources"):WaitForChild("Remotes"):WaitForChild("Collect")
+-- 获取建筑文件夹
+local structures = plot:FindFirstChild("baseplate") and plot.baseplate:FindFirstChild("Structures")
+if not structures then
+    print("找不到建筑文件夹")
+    return
+end
+
+-- 获取收集远程事件
+local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
+if remote then
+    remote = remote:FindFirstChild("Resources")
+    if remote then
+        remote = remote:FindFirstChild("PlotResources")
+        if remote then
+            remote = remote:FindFirstChild("Remotes")
+            if remote then
+                remote = remote:FindFirstChild("Collect")
+            end
+        end
+    end
+end
+
+if not remote then
+    print("找不到收集事件")
+    return
+end
 
 local isCollecting = false
 
 Toggle = TabHandles.Y:Toggle({
-    Title = "自动收集全部太阳能",
-    Desc = "远程收集不需要手动",
+    Title = "自动收集生产",
+    Desc = "开启后自动收集所有建筑产出",
     Locked = false,
     Callback = function(value)
         isCollecting = value
         if value then
+            print("开始自动收集")
             task.spawn(function()
                 while isCollecting do
-                    pcall(function()
-                        remote:FireServer(collectTarget)
-                    end)
+                    for _, building in pairs(structures:GetChildren()) do
+                        pcall(function()
+                            remote:FireServer(building)
+                        end)
+                        task.wait(0.05)
+                    end
                     task.wait(0.1)
                 end
             end)
+        else
+            print("停止自动收集")
         end
     end
 })
+
 
 Section = TabHandles.A:Section({
 Title = "装饰品",
